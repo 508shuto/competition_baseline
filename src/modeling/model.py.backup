@@ -1,0 +1,129 @@
+import pandas as pd
+import numpy as np
+from abc import ABCMeta, abstractmethod
+from typing import Optional
+
+
+class Model(metaclass=ABCMeta):
+    def __init__(self, run_fold_name: str, params: dict) -> None:
+        """コンストラクタ
+
+        :param run_fold_name: ランの名前とfoldの番号を組み合わせた名前
+        :param params: ハイパーパラメータ
+        """
+        self.run_fold_name = run_fold_name
+        self.params = params
+        self.model = None
+
+    @abstractmethod
+    def train(self, tr_x: pd.DataFrame, tr_y: pd.Series,
+              va_x: Optional[pd.DataFrame] = None,
+              va_y: Optional[pd.Series] = None) -> None:
+        """モデルの学習を行い、学習済のモデルを保存する
+
+        :param tr_x: 学習データの特徴量
+        :param tr_y: 学習データの目的変数
+        :param va_x: バリデーションデータの特徴量
+        :param va_y: バリデーションデータの目的変数
+        """
+        pass
+
+    @abstractmethod
+    def predict(self, te_x: pd.DataFrame) -> np.array:
+        """学習済のモデルでの予測値を返す
+
+        :param te_x: バリデーションデータやテストデータの特徴量
+        :return: 予測値
+        """
+        pass
+
+    @abstractmethod
+    def save_model(self) -> None:
+        """モデルの保存を行う"""
+        pass
+
+    @abstractmethod
+    def load_model(self) -> None:
+        """モデルの読み込みを行う"""
+        pass
+
+class XGBoost:
+    def __init__(self):
+        pass
+
+    def main():
+        models_xgb = []
+        rmses_xgb = []
+        oof_xgb = np.zeros(len(train_X))
+
+        for train_index, val_index in kf.split(train_X):
+            X_train = train_X.iloc[train_index]
+            X_valid = train_X.iloc[val_index]
+            y_train = train_y.iloc[train_index]
+            y_valid = train_y.iloc[val_index]
+
+            xgb_train = xgb.DMatrix(X_train, y_train)
+            xgb_eval = xgb.DMatrix(X_valid, label=y_valid)
+            evals = [(xgb_train, "train"), (xgb_eval, "eval")]
+
+            xgb_train = xgb.DMatrix(X_train, y_train)
+            xgb_eval = xgb.DMatrix(X_valid, label=y_valid)
+            evals = [(xgb_train, "train"), (xgb_eval, "eval")]
+
+            model_xgb = xgb.train(
+                xgb_params,
+                xgb_train,
+                evals=evals,
+                num_boost_round=1000,
+                early_stopping_rounds=20,
+                verbose_eval=10,
+            )
+
+            y_pred = model_xgb.predict(xgb_eval)
+            tmp_rmse = np.sqrt(mean_squared_error(y_valid, y_pred))
+
+            print("tmp_rmse: ", tmp_rmse)
+
+            models_xgb.append(model_xgb)
+            rmses_xgb.append(tmp_rmse)
+            oof_xgb[val_index] = y_pred
+
+        return y_pred
+
+
+class LightGBM:
+    def __init__(self):
+        pass
+
+    def main():
+        models = []
+        rmses = []
+        oof = np.zeros(len(train_X))
+
+        for train_index, val_index in kf.split(train_X):
+            X_train = train_X.iloc[train_index]
+            X_valid = train_X.iloc[val_index]
+            y_train = train_y.iloc[train_index]
+            y_valid = train_y.iloc[val_index]
+
+            lgb_train = lgb.Dataset(X_train, y_train)
+            lgb_eval = lgb.Dataset(X_valid, y_valid, reference=lgb_train)
+
+            model_lgb = lgb.train(
+                lgbm_params,
+                lgb_train,
+                valid_sets=lgb_eval,
+                num_boost_round=100,
+                early_stopping_rounds=20,
+                verbose_eval=10,
+            )
+
+            y_pred = model_lgb.predict(X_valid, num_iteration=model_lgb.best_iteration)
+            tmp_rmse = np.sqrt(mean_squared_error(y_valid, y_pred))
+            print("tmp_rmse: ", tmp_rmse)
+
+            models.append(model_lgb)
+            rmses.append(tmp_rmse)
+            oof[val_index] = y_pred
+
+        return y_pred
